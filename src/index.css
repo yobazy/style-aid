@@ -1,0 +1,95 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #d8d3ca;
+  background: #0a0a0a;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --background: #0a0a0a;
+  --surface: #121212;
+  --surface-strong: #181818;
+  --border: #262626;
+  --text: #d8d3ca;
+  --text-strong: #f5f1e8;
+  --muted: #8e877b;
+  --accent: #f5f1e8;
+  --accent-strong: #d2c5ae;
+  --accent-soft: #1b1b1b;
+  --accent-border: #3a342d;
+  --track: #242424;
+  --focus-ring: rgba(245, 241, 232, 0.16);
+  --good-bg: #132018;
+  --good-border: #2a4f35;
+  --good-text: #a4d1ac;
+  --warn-bg: #241d10;
+  --warn-border: #6c5121;
+  --gap-bg: #241414;
+  --gap-border: #5c2b2b;
+  --pill-neutral-bg: #1f1f1f;
+  --pill-neutral-text: #d0c7bb;
+  --pill-warn-bg: #2c2416;
+  --pill-warn-text: #d5b678;
+  --pill-danger-bg: #311d1d;
+  --pill-danger-text: #dd9a9a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 25%),
+    linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
+  color: var(--text);
+}
+
+body,
+button,
+ a,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+#root {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: clamp(2.1rem, 5vw, 3.9rem);
+  line-height: 1;
+  color: var(--text-strong);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  font-size: 1.1rem;
+  color: var(--text-strong);
+}
+
+p {
+  color: var(--text);
+}
