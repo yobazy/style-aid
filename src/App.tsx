@@ -7,6 +7,7 @@ import { LooksView } from './components/LooksView'
 import { WishlistView } from './components/WishlistView'
 import { getRankedGaps, getScenarioCoverage, getWishlistInsights, getWishlistSpend } from './lib/insights'
 import { getLookSummary } from './lib/looks'
+import { findMergeTarget, mergeWishlistEntry } from './lib/wishlist'
 import {
   getLastSaveFailed,
   loadState,
@@ -164,12 +165,7 @@ function App() {
 
   function upsertWishlistItem(item: WishlistItem) {
     updateState((current) => {
-      const existing = current.wishlist.find(
-        (entry) =>
-          entry.title.toLowerCase() === item.title.toLowerCase() &&
-          entry.category === item.category &&
-          entry.status !== 'Bought',
-      )
+      const existing = findMergeTarget(current.wishlist, item)
 
       if (!existing) {
         return {
@@ -178,17 +174,7 @@ function App() {
         }
       }
 
-      const merged: WishlistItem = {
-        ...existing,
-        ...item,
-        id: existing.id,
-        image: item.image || existing.image,
-        scenarioIds: [...new Set([...existing.scenarioIds, ...item.scenarioIds])],
-        intendedLookIds: [...new Set([...existing.intendedLookIds, ...item.intendedLookIds])],
-        intendedWithItemIds: [
-          ...new Set([...existing.intendedWithItemIds, ...item.intendedWithItemIds]),
-        ],
-      }
+      const merged = mergeWishlistEntry(existing, item)
 
       return {
         ...current,

@@ -135,6 +135,28 @@ test('insights lists gaps and turns one into a wishlist idea', async ({ page }) 
   await expect(page.locator('.buy-card', { hasText: 'Date Night accessory' })).toBeVisible()
 })
 
+test('adding the same gap twice keeps the details already filled in', async ({ page }) => {
+  await openTab(page, 'Insights')
+  await page
+    .locator('.list-card', { hasText: 'would unblock Date Night Base' })
+    .getByRole('button', { name: 'Add to wishlist' })
+    .click()
+
+  const entry = page.locator('.buy-card', { hasText: 'Date Night accessory' })
+  await entry.getByPlaceholder('Current price').fill('85')
+  await entry.getByLabel('Status').selectOption('Ready to Buy')
+
+  await openTab(page, 'Insights')
+  await page
+    .locator('.list-card', { hasText: 'would unblock Date Night Base' })
+    .getByRole('button', { name: 'Add to wishlist' })
+    .click()
+
+  await expect(page.locator('.buy-card', { hasText: 'Date Night accessory' })).toHaveCount(1)
+  await expect(entry.getByPlaceholder('Current price')).toHaveValue('85')
+  await expect(entry.getByLabel('Status')).toHaveValue('Ready to Buy')
+})
+
 test('every tab renders without page errors or sideways scrolling', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
