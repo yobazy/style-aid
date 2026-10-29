@@ -5,7 +5,13 @@ import { DashboardView } from './components/DashboardView'
 import { InsightsView } from './components/InsightsView'
 import { LooksView } from './components/LooksView'
 import { WishlistView } from './components/WishlistView'
-import { getRankedGaps, getScenarioCoverage, getWishlistInsights, getWishlistSpend } from './lib/insights'
+import {
+  getRankedGaps,
+  getScenarioCoverage,
+  getTopWishlistInsights,
+  getWishlistInsights,
+  getWishlistSpend,
+} from './lib/insights'
 import { getLookSummary } from './lib/looks'
 import { findMergeTarget, mergeWishlistEntry } from './lib/wishlist'
 import {
@@ -97,7 +103,7 @@ function App() {
   )
 
   const topWishlist = useMemo(
-    () => [...wishlistInsights].sort((left, right) => right.usefulnessScore - left.usefulnessScore).slice(0, 3),
+    () => getTopWishlistInsights(wishlistInsights, 3),
     [wishlistInsights],
   )
 

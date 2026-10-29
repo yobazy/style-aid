@@ -4,6 +4,7 @@ import {
   formatCurrency,
   getRankedGaps,
   getScenarioCoverage,
+  getTopWishlistInsights,
   getWishlistInsights,
   getWishlistSpend,
   parsePrice,
@@ -112,6 +113,23 @@ describe('getWishlistInsights', () => {
     const state = { ...buildSeedState(), wishlist: [wish({ id: 'a', targetPrice: '50' }), wish({ id: 'b', intendedLookIds: ['l'] })] }
 
     expect(getWishlistInsights(state).map((entry) => entry.costPerLook)).toEqual([null, null])
+  })
+})
+
+describe('getTopWishlistInsights', () => {
+  it('orders by usefulness and leaves out bought items', () => {
+    const state = {
+      ...buildSeedState(),
+      wishlist: [
+        wish({ id: 'low' }),
+        wish({ id: 'high', intendedLookIds: ['l1', 'l2'] }),
+        wish({ id: 'bought', intendedLookIds: ['l1', 'l2', 'l3'], status: 'Bought', purchased: true }),
+        wish({ id: 'mid', scenarioIds: ['work'] }),
+      ],
+    }
+
+    const top = getTopWishlistInsights(getWishlistInsights(state), 2)
+    expect(top.map((entry) => entry.item.id)).toEqual(['high', 'mid'])
   })
 })
 

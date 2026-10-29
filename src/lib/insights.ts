@@ -147,6 +147,14 @@ export function getWishlistInsights(state: AppState): WishlistInsight[] {
   })
 }
 
+// Most useful items still to buy, best first.
+export function getTopWishlistInsights(insights: WishlistInsight[], limit: number) {
+  return insights
+    .filter(({ item }) => item.status !== 'Bought' && !item.purchased)
+    .sort((left, right) => right.usefulnessScore - left.usefulnessScore)
+    .slice(0, limit)
+}
+
 export function getWishlistSpend(wishlist: WishlistItem[]) {
   return wishlist
     .filter((item) => item.status !== 'Bought' && !item.purchased)
