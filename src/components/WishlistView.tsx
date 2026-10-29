@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { formatCurrency } from '../lib/insights'
+import { formatCurrency, parsePrice } from '../lib/insights'
 import { importProductFromUrl } from '../lib/productImport'
 import type {
   Category,
@@ -553,7 +553,7 @@ export function WishlistView({
 
                 <div className="meta-row">
                   <span>
-                    Est. spend {formatCurrency(Number(item.currentPrice || item.targetPrice || 0))}
+                    Est. spend {formatCurrency(parsePrice(item.currentPrice || item.targetPrice))}
                   </span>
                   <span>Usefulness {insight?.usefulnessScore ?? 0}</span>
                   <span>Unlocks {insight?.unlockedLookCount ?? 0} looks</span>

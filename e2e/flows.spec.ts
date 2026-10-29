@@ -104,6 +104,15 @@ test('adding and removing a wishlist product updates the spend', async ({ page }
   await expect(page.locator('.buy-card', { hasText: 'Silk scarf' })).toHaveCount(0)
 })
 
+test('prices typed with a currency symbol or comma still show a spend', async ({ page }) => {
+  await openTab(page, 'Wishlist')
+  const entry = page.locator('.buy-card', { hasText: 'Structured evening shoulder bag' })
+  await entry.getByPlaceholder('Current price').fill('$1,295')
+
+  await expect(entry).toContainText('Est. spend $1,295')
+  await expect(page.getByText('$NaN')).toHaveCount(0)
+})
+
 test('marking a wishlist item bought drops it from the spend', async ({ page }) => {
   await openTab(page, 'Wishlist')
   await page
