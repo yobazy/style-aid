@@ -34,9 +34,23 @@ function decodeHtml(value: string) {
     .trim()
 }
 
+// Reads "1,299.00", "1.299,00", "49,99" and "$120". One or two digits after the last
+// separator are decimals; three are a thousands group.
 export function sanitizePrice(value: string) {
-  const match = value.match(/[0-9]+(?:[.,][0-9]{2})?/)
-  return match ? match[0].replace(',', '') : ''
+  const match = value.match(/[0-9][0-9.,]*/)
+  if (!match) {
+    return ''
+  }
+
+  const number = match[0].replace(/[.,]+$/, '')
+  const lastSeparator = Math.max(number.lastIndexOf('.'), number.lastIndexOf(','))
+  const decimals = lastSeparator === -1 ? '' : number.slice(lastSeparator + 1)
+
+  if (decimals.length === 1 || decimals.length === 2) {
+    return `${number.slice(0, lastSeparator).replace(/[.,]/g, '')}.${decimals}`
+  }
+
+  return number.replace(/[.,]/g, '')
 }
 
 export function retailerFromHostname(hostname: string) {

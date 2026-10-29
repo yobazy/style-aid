@@ -58,6 +58,15 @@ describe('sanitizePrice', () => {
     expect(sanitizePrice('USD 120')).toBe('120')
     expect(sanitizePrice('none')).toBe('')
   })
+
+  it('handles thousands separators and decimal commas', () => {
+    expect(sanitizePrice('$1,299.00')).toBe('1299.00')
+    expect(sanitizePrice('1,299')).toBe('1299')
+    expect(sanitizePrice('49,99 €')).toBe('49.99')
+    expect(sanitizePrice('1.299,00')).toBe('1299.00')
+    expect(sanitizePrice('12.5')).toBe('12.5')
+    expect(sanitizePrice('2,450,000')).toBe('2450000')
+  })
 })
 
 describe('retailerFromHostname', () => {
