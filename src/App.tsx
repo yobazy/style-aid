@@ -1,13 +1,26 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { ClosetView } from './components/ClosetView'
 import { DashboardView } from './components/DashboardView'
 import { InsightsView } from './components/InsightsView'
 import { LooksView } from './components/LooksView'
 import { WishlistView } from './components/WishlistView'
-import { getRankedGaps, getScenarioCoverage, getWishlistInsights, getWishlistSpend } from './lib/insights'
+import {
+  getRankedGaps,
+  getScenarioCoverage,
+  getTopWishlistInsights,
+  getWishlistInsights,
+  getWishlistSpend,
+} from './lib/insights'
 import { getLookSummary } from './lib/looks'
-import { loadState, saveState, syncReplacementWishlistEntries } from './lib/storage'
+import { findMergeTarget, mergeWishlistEntry } from './lib/wishlist'
+import {
+  getLastSaveFailed,
+  loadState,
+  saveState,
+  subscribeToSaveStatus,
+  syncReplacementWishlistEntries,
+} from './lib/storage'
 import type { AppState, AppTab, Category, Look, LookStatus, Season, WishlistItem, WardrobeItem } from './types'
 import { appTabs } from './types'
 
@@ -45,6 +58,7 @@ function syncAppState(next: AppState): AppState {
 function App() {
   const [appState, setAppState] = useState<AppState>(() => syncAppState(loadState()))
   const [activeTab, setActiveTab] = useState<AppTab>('Home')
+  const saveFailed = useSyncExternalStore(subscribeToSaveStatus, getLastSaveFailed)
 
   useEffect(() => {
     saveState(appState)
@@ -89,7 +103,7 @@ function App() {
   )
 
   const topWishlist = useMemo(
-    () => [...wishlistInsights].sort((left, right) => right.usefulnessScore - left.usefulnessScore).slice(0, 3),
+    () => getTopWishlistInsights(wishlistInsights, 3),
     [wishlistInsights],
   )
 
@@ -157,12 +171,7 @@ function App() {
 
   function upsertWishlistItem(item: WishlistItem) {
     updateState((current) => {
-      const existing = current.wishlist.find(
-        (entry) =>
-          entry.title.toLowerCase() === item.title.toLowerCase() &&
-          entry.category === item.category &&
-          entry.status !== 'Bought',
-      )
+      const existing = findMergeTarget(current.wishlist, item)
 
       if (!existing) {
         return {
@@ -171,17 +180,7 @@ function App() {
         }
       }
 
-      const merged: WishlistItem = {
-        ...existing,
-        ...item,
-        id: existing.id,
-        image: item.image || existing.image,
-        scenarioIds: [...new Set([...existing.scenarioIds, ...item.scenarioIds])],
-        intendedLookIds: [...new Set([...existing.intendedLookIds, ...item.intendedLookIds])],
-        intendedWithItemIds: [
-          ...new Set([...existing.intendedWithItemIds, ...item.intendedWithItemIds]),
-        ],
-      }
+      const merged = mergeWishlistEntry(existing, item)
 
       return {
         ...current,
@@ -260,12 +259,20 @@ function App() {
             key={tab}
             type="button"
             className={tab === activeTab ? 'tab is-active' : 'tab'}
+            aria-current={tab === activeTab ? 'page' : undefined}
             onClick={() => setActiveTab(tab)}
           >
             {tab}
           </button>
         ))}
       </nav>
+
+      {saveFailed && (
+        <p className="save-warning" role="alert">
+          Your latest change could not be saved because browser storage is full. Photos take
+          the most space, so try a smaller one.
+        </p>
+      )}
 
       <main className="content-grid">
         {activeTab === 'Home' && (

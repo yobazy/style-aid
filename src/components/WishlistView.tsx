@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { formatCurrency } from '../lib/insights'
+import { formatCurrency, formatLookCount, parsePrice } from '../lib/insights'
 import { importProductFromUrl } from '../lib/productImport'
 import type {
   Category,
@@ -380,6 +380,7 @@ export function WishlistView({
                     className={
                       draft.scenarioIds.includes(scenario.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.scenarioIds.includes(scenario.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -403,6 +404,7 @@ export function WishlistView({
                     className={
                       draft.intendedLookIds.includes(look.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.intendedLookIds.includes(look.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -426,6 +428,7 @@ export function WishlistView({
                     className={
                       draft.intendedWithItemIds.includes(item.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.intendedWithItemIds.includes(item.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -553,10 +556,10 @@ export function WishlistView({
 
                 <div className="meta-row">
                   <span>
-                    Est. spend {formatCurrency(Number(item.currentPrice || item.targetPrice || 0))}
+                    Est. spend {formatCurrency(parsePrice(item.currentPrice || item.targetPrice))}
                   </span>
                   <span>Usefulness {insight?.usefulnessScore ?? 0}</span>
-                  <span>Unlocks {insight?.unlockedLookCount ?? 0} looks</span>
+                  <span>Unlocks {formatLookCount(insight?.unlockedLookCount ?? 0)}</span>
                   {insight?.costPerLook !== null && insight?.costPerLook !== undefined && (
                     <span>{formatCurrency(insight.costPerLook)}/look</span>
                   )}

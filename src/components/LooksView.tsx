@@ -62,6 +62,13 @@ export function LooksView({
     [activeScenario, draft.season, wardrobe],
   )
 
+  // Picks stay in the draft when a scenario or season switch hides them, so switching
+  // back restores them, but only the pieces still shown count and get saved.
+  const visibleItemIds = useMemo(
+    () => draft.itemIds.filter((id) => filteredWardrobe.some((item) => item.id === id)),
+    [draft.itemIds, filteredWardrobe],
+  )
+
   const draftLookSummary = useMemo(() => {
     const previewLook: Look = {
       id: 'draft',
@@ -69,7 +76,7 @@ export function LooksView({
       scenarioId: draft.scenarioId,
       season: draft.season,
       notes: draft.notes,
-      itemIds: draft.itemIds,
+      itemIds: visibleItemIds,
       isPlanned: draft.isPlanned,
       rating: draft.rating,
       status: 'Ready',
@@ -78,7 +85,7 @@ export function LooksView({
     }
 
     return getLookSummary(previewLook, wardrobe, activeScenario)
-  }, [activeScenario, draft, wardrobe])
+  }, [activeScenario, draft, visibleItemIds, wardrobe])
 
   function toggleItem(itemId: string) {
     setDraft((current) => ({
@@ -96,7 +103,7 @@ export function LooksView({
       scenarioId: draft.scenarioId,
       season: draft.season,
       notes: draft.notes.trim(),
-      itemIds: draft.itemIds,
+      itemIds: visibleItemIds,
       isPlanned: draft.isPlanned,
       rating: draft.rating,
     })
@@ -119,6 +126,7 @@ export function LooksView({
               key={scenario.id}
               type="button"
               className={scenario.id === draft.scenarioId ? 'chip is-active' : 'chip'}
+              aria-pressed={scenario.id === draft.scenarioId}
               onClick={() =>
                 setDraft((current) => ({ ...current, scenarioId: scenario.id }))
               }
@@ -219,6 +227,7 @@ export function LooksView({
                     key={item.id}
                     type="button"
                     className={selected ? 'select-card is-selected' : 'select-card'}
+                    aria-pressed={selected}
                     onClick={() => toggleItem(item.id)}
                   >
                     {item.image ? (
@@ -265,7 +274,7 @@ export function LooksView({
                         season: draft.season,
                         scenarioIds: [draft.scenarioId],
                         intendedLookIds: [],
-                        intendedWithItemIds: draft.itemIds,
+                        intendedWithItemIds: visibleItemIds,
                         notes: `Created from a draft ${activeScenario.name.toLowerCase()} look.`,
                       })
                     }

@@ -1,6 +1,6 @@
 import { getColorSwatch } from '../lib/color'
 import type { Look, LookSummary, ScenarioCoverage, WishlistInsight } from '../types'
-import { formatCurrency } from '../lib/insights'
+import { formatCurrency, formatLookCount } from '../lib/insights'
 
 type LookCardData = {
   look: Look
@@ -71,7 +71,7 @@ export function DashboardView({
               >
                 <div className="progress-ring-inner">
                   <strong>{entry.coveragePercent}%</strong>
-                  <span>{entry.plannedLooks} looks</span>
+                  <span>{formatLookCount(entry.plannedLooks)}</span>
                 </div>
               </div>
               <div>
@@ -151,7 +151,7 @@ export function DashboardView({
                 <span>{item.title}</span>
                 <strong>{usefulnessScore}</strong>
                 <p>
-                  Helps {unlockedLookCount} looks · {item.status}
+                  Helps {formatLookCount(unlockedLookCount)} · {item.status}
                 </p>
               </article>
             ))}

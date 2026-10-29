@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { getColorSwatch } from '../lib/color'
+import { getColorSwatch, getSwatchTextColor } from '../lib/color'
+import { formatLookCount } from '../lib/insights'
 import type { DressCode, Look, Season, WardrobeItem } from '../types'
 import { categories, dressCodes, seasons } from '../types'
 
@@ -60,6 +61,7 @@ export function ClosetView({
   const [categoryFilter, setCategoryFilter] =
     useState<WardrobeItem['category'] | 'All'>('All')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [photoError, setPhotoError] = useState(false)
 
   const useCount = useMemo(() => {
     return looks.reduce<Record<string, number>>((counts, look) => {
@@ -110,13 +112,19 @@ export function ClosetView({
 
   async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    setPhotoError(false)
     if (!file) {
       setDraft((current) => ({ ...current, image: undefined }))
       return
     }
 
-    const image = await readFileAsDataUrl(file)
-    setDraft((current) => ({ ...current, image }))
+    try {
+      const image = await readFileAsDataUrl(file)
+      setDraft((current) => ({ ...current, image }))
+    } catch {
+      setDraft((current) => ({ ...current, image: undefined }))
+      setPhotoError(true)
+    }
   }
 
   return (
@@ -137,7 +145,10 @@ export function ClosetView({
               ) : (
                 <div
                   className="empty-photo color-fallback-stage"
-                  style={{ backgroundColor: getColorSwatch(draft.color || 'black') }}
+                  style={{
+                    backgroundColor: getColorSwatch(draft.color || 'black'),
+                    color: getSwatchTextColor(getColorSwatch(draft.color || 'black')),
+                  }}
                 >
                   <span>{draft.color || 'Add a color and photo'}</span>
                 </div>
@@ -153,6 +164,11 @@ export function ClosetView({
                   }}
                 />
               </label>
+              {photoError && (
+                <span className="helper-text helper-text-error" role="alert">
+                  That photo could not be read. Try another file.
+                </span>
+              )}
             </div>
           </div>
 
@@ -365,7 +381,10 @@ export function ClosetView({
                 ) : (
                   <div
                     className="empty-photo empty-photo-card color-fallback-stage"
-                    style={{ backgroundColor: getColorSwatch(item.color) }}
+                    style={{
+                      backgroundColor: getColorSwatch(item.color),
+                      color: getSwatchTextColor(getColorSwatch(item.color)),
+                    }}
                   >
                     <span>{item.color}</span>
                   </div>
@@ -397,7 +416,7 @@ export function ClosetView({
                 {item.dressCode} · Formality {item.formality}/5
               </p>
               <p>{'★'.repeat(item.qualityRating)}</p>
-              <p>Used in {useCount[item.id] ?? 0} looks</p>
+              <p>Used in {formatLookCount(useCount[item.id] ?? 0)}</p>
               <div className="tag-row">
                 {item.tags.map((tag) => (
                   <span key={tag} className="chip">
