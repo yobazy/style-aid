@@ -16,6 +16,10 @@ export function parsePrice(value: string) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+export function formatLookCount(count: number) {
+  return `${count} ${count === 1 ? 'look' : 'looks'}`
+}
+
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

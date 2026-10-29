@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { getColorSwatch } from '../lib/color'
+import { formatLookCount } from '../lib/insights'
 import type { DressCode, Look, Season, WardrobeItem } from '../types'
 import { categories, dressCodes, seasons } from '../types'
 
@@ -397,7 +398,7 @@ export function ClosetView({
                 {item.dressCode} · Formality {item.formality}/5
               </p>
               <p>{'★'.repeat(item.qualityRating)}</p>
-              <p>Used in {useCount[item.id] ?? 0} looks</p>
+              <p>Used in {formatLookCount(useCount[item.id] ?? 0)}</p>
               <div className="tag-row">
                 {item.tags.map((tag) => (
                   <span key={tag} className="chip">

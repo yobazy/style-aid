@@ -101,7 +101,7 @@ test('a missing piece on a saved look becomes a wishlist idea linked to that loo
   const entry = page.locator('.buy-card', { hasText: 'Date Night accessory' })
   await expect(entry).toBeVisible()
   await expect(entry).toContainText('Date Night Base')
-  await expect(entry).toContainText('Unlocks 1 looks')
+  await expect(entry).toContainText('Unlocks 1 look')
 })
 
 test('adding and removing a wishlist product updates the spend', async ({ page }) => {

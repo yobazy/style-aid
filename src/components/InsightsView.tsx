@@ -1,5 +1,5 @@
 import { ScenarioRadarChart } from './ScenarioRadarChart'
-import { formatCurrency, getTopWishlistInsights } from '../lib/insights'
+import { formatCurrency, formatLookCount, getTopWishlistInsights } from '../lib/insights'
 import { singularCategory } from '../lib/looks'
 import type { Category, RankedGap, Scenario, ScenarioCoverage, WishlistInsight } from '../types'
 
@@ -123,7 +123,7 @@ export function InsightsView({
                 <span>{item.title}</span>
                 <strong>{usefulnessScore}</strong>
                 <p>
-                  {unlockedLookCount} looks · {item.priority}
+                  {formatLookCount(unlockedLookCount)} · {item.priority}
                 </p>
                 {costPerLook !== null && <p>{formatCurrency(costPerLook)}/look</p>}
               </article>

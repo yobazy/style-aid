@@ -7,6 +7,7 @@ import {
   getTopWishlistInsights,
   getWishlistInsights,
   getWishlistSpend,
+  formatLookCount,
   parsePrice,
 } from './insights'
 import { buildSeedState } from './storage'
@@ -42,6 +43,14 @@ describe('parsePrice', () => {
 
   it('returns 0 for text it cannot read', () => {
     expect(parsePrice('1.2.3')).toBe(0)
+  })
+})
+
+describe('formatLookCount', () => {
+  it('uses the singular for one look', () => {
+    expect(formatLookCount(0)).toBe('0 looks')
+    expect(formatLookCount(1)).toBe('1 look')
+    expect(formatLookCount(3)).toBe('3 looks')
   })
 })
 
