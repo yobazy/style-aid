@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { getColorSwatch } from '../lib/color'
+import { getColorSwatch, getSwatchTextColor } from '../lib/color'
 import { formatLookCount } from '../lib/insights'
 import type { DressCode, Look, Season, WardrobeItem } from '../types'
 import { categories, dressCodes, seasons } from '../types'
@@ -138,7 +138,10 @@ export function ClosetView({
               ) : (
                 <div
                   className="empty-photo color-fallback-stage"
-                  style={{ backgroundColor: getColorSwatch(draft.color || 'black') }}
+                  style={{
+                    backgroundColor: getColorSwatch(draft.color || 'black'),
+                    color: getSwatchTextColor(getColorSwatch(draft.color || 'black')),
+                  }}
                 >
                   <span>{draft.color || 'Add a color and photo'}</span>
                 </div>
@@ -366,7 +369,10 @@ export function ClosetView({
                 ) : (
                   <div
                     className="empty-photo empty-photo-card color-fallback-stage"
-                    style={{ backgroundColor: getColorSwatch(item.color) }}
+                    style={{
+                      backgroundColor: getColorSwatch(item.color),
+                      color: getSwatchTextColor(getColorSwatch(item.color)),
+                    }}
                   >
                     <span>{item.color}</span>
                   </div>
