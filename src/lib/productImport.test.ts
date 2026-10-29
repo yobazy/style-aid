@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { importProductFromUrl } from './productImport'
+import { importProductFromUrl, inferCategory } from './productImport'
 
 function mockFetch(body: unknown, init: { ok?: boolean; text?: string } = {}) {
   const fetchMock = vi.fn(async () => ({
@@ -13,6 +13,24 @@ function mockFetch(body: unknown, init: { ok?: boolean; text?: string } = {}) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('inferCategory', () => {
+  it.each([
+    ['White Leather Sneakers', 'Shoes'],
+    ['Suede Ankle Boots', 'Shoes'],
+    ['Straight Leg Jeans', 'Bottoms'],
+    ['Wide Trousers', 'Bottoms'],
+    ['Denim Shorts', 'Bottoms'],
+    ['Short Sleeve Oxford Shirt', 'Tops'],
+    ['Gold Hoop Earrings', 'Jewelry'],
+    ['Stacking Rings', 'Jewelry'],
+    ['Cashmere Scarves', 'Accessories'],
+    ['Mini Leather Tote Bag', 'Bags'],
+    ['Diver Watches', 'Watches'],
+  ])('puts "%s" in %s', (title, category) => {
+    expect(inferCategory(title)).toBe(category)
+  })
 })
 
 describe('importProductFromUrl', () => {
