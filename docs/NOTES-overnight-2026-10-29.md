@@ -52,4 +52,4 @@ npm run dev
 4. Should marking a wishlist item Bought add it to the closet? And do you want edit and delete for pieces and looks?
 5. Look status: keep the manual select, or derive it from completeness?
 6. React 19.3: take it now (+9 kB gzip) or wait?
-7. Review draft PR "Audit, tests and fixes (2026-10-29)" on branch `audit-2026-10-29`.
+7. Review draft PR #1 "Audit, tests and fixes (2026-10-29)": https://github.com/yobazy/style-aid/pull/1
