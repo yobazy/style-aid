@@ -204,6 +204,25 @@ describe('handleImport', () => {
   })
 })
 
+describe('handleImport with a streamed body', () => {
+  it('stops reading after 5 MB when no size is declared', async () => {
+    let pulls = 0
+    const chunk = new TextEncoder().encode('<meta property="og:title" content="Big Page">'.padEnd(1024 * 1024, ' '))
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1
+        controller.enqueue(chunk)
+      },
+    })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 200 })))
+
+    const res = await callImport(`/?url=${encodeURIComponent('https://shop.example/p')}`)
+
+    expect(JSON.parse(res.body).title).toBe('Big Page')
+    expect(pulls).toBeLessThanOrEqual(7)
+  })
+})
+
 describe('isNonPublicAddress', () => {
   it('flags loopback, private, link-local and CGNAT ranges', () => {
     for (const address of ['127.0.0.1', '10.1.2.3', '172.20.0.1', '192.168.0.10', '169.254.1.1', '100.100.1.1', '0.0.0.0', '::1', 'fd7a:115c::1', 'fe80::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:a00:5']) {

@@ -74,6 +74,28 @@ async function assertPublicUrl(url: URL) {
   }
 }
 
+// Reads at most maxPageBytes, so a page without a Content-Length cannot exhaust memory.
+async function readLimitedText(response: Response) {
+  if (!response.body) {
+    return (await response.text()).slice(0, maxPageBytes)
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (total < maxPageBytes) {
+    const { done, value } = await reader.read()
+    if (done) {
+      break
+    }
+    chunks.push(value)
+    total += value.byteLength
+  }
+  await reader.cancel().catch(() => undefined)
+
+  return new TextDecoder().decode(Buffer.concat(chunks).subarray(0, maxPageBytes))
+}
+
 // Follows redirects by hand so every hop is checked, not just the first URL.
 async function fetchPublicPage(url: URL, init: RequestInit, redirects = 0): Promise<Response> {
   await assertPublicUrl(url)
@@ -195,7 +217,7 @@ export async function handleImport(req: IncomingMessage, res: ServerResponse) {
       return
     }
 
-    const html = (await response.text()).slice(0, maxPageBytes)
+    const html = await readLimitedText(response)
     const title =
       extractMeta(html, 'og:title') ||
       extractMeta(html, 'twitter:title') ||
