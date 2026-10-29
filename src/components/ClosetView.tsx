@@ -61,6 +61,7 @@ export function ClosetView({
   const [categoryFilter, setCategoryFilter] =
     useState<WardrobeItem['category'] | 'All'>('All')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [photoError, setPhotoError] = useState(false)
 
   const useCount = useMemo(() => {
     return looks.reduce<Record<string, number>>((counts, look) => {
@@ -111,13 +112,19 @@ export function ClosetView({
 
   async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    setPhotoError(false)
     if (!file) {
       setDraft((current) => ({ ...current, image: undefined }))
       return
     }
 
-    const image = await readFileAsDataUrl(file)
-    setDraft((current) => ({ ...current, image }))
+    try {
+      const image = await readFileAsDataUrl(file)
+      setDraft((current) => ({ ...current, image }))
+    } catch {
+      setDraft((current) => ({ ...current, image: undefined }))
+      setPhotoError(true)
+    }
   }
 
   return (
@@ -157,6 +164,11 @@ export function ClosetView({
                   }}
                 />
               </label>
+              {photoError && (
+                <span className="helper-text helper-text-error" role="alert">
+                  That photo could not be read. Try another file.
+                </span>
+              )}
             </div>
           </div>
 
