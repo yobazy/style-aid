@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { scenarioPresets } from '../data/scenarios'
 import type { AppState } from '../types'
-import { buildSeedState, loadState, saveState, syncReplacementWishlistEntries } from './storage'
+import {
+  buildSeedState,
+  getLastSaveFailed,
+  loadState,
+  saveState,
+  subscribeToSaveStatus,
+  syncReplacementWishlistEntries,
+} from './storage'
 
 class MemoryStorage {
   values = new Map<string, string>()
@@ -89,6 +96,23 @@ describe('loadState and saveState', () => {
     saveState(next)
 
     expect(loadState().wardrobe).toEqual(next.wardrobe)
+  })
+
+  it('reports a failed write instead of throwing when storage is full', () => {
+    storage.setItem = () => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    }
+    const listener = vi.fn()
+    const unsubscribe = subscribeToSaveStatus(listener)
+
+    expect(saveState(buildSeedState())).toBe(false)
+    expect(getLastSaveFailed()).toBe(true)
+    expect(listener).toHaveBeenCalledTimes(1)
+
+    storage.setItem = MemoryStorage.prototype.setItem
+    expect(saveState(buildSeedState())).toBe(true)
+    expect(getLastSaveFailed()).toBe(false)
+    unsubscribe()
   })
 
   it('falls back to the seed state when stored JSON is corrupt', () => {

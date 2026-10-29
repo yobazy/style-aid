@@ -518,10 +518,41 @@ export function loadState(): AppState {
   return buildSeedState()
 }
 
-export function saveState(state: AppState) {
-  if (typeof window === 'undefined') {
+let lastSaveFailed = false
+const saveListeners = new Set<() => void>()
+
+export function subscribeToSaveStatus(listener: () => void) {
+  saveListeners.add(listener)
+  return () => {
+    saveListeners.delete(listener)
+  }
+}
+
+export function getLastSaveFailed() {
+  return lastSaveFailed
+}
+
+function setLastSaveFailed(failed: boolean) {
+  if (failed === lastSaveFailed) {
     return
   }
 
-  window.localStorage.setItem(storageKey, JSON.stringify(state))
+  lastSaveFailed = failed
+  saveListeners.forEach((listener) => listener())
+}
+
+// Returns false when the browser refuses the write (usually a full quota from photos).
+export function saveState(state: AppState) {
+  if (typeof window === 'undefined') {
+    return true
+  }
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(state))
+    setLastSaveFailed(false)
+    return true
+  } catch {
+    setLastSaveFailed(true)
+    return false
+  }
 }

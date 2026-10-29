@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { ClosetView } from './components/ClosetView'
 import { DashboardView } from './components/DashboardView'
@@ -7,7 +7,13 @@ import { LooksView } from './components/LooksView'
 import { WishlistView } from './components/WishlistView'
 import { getRankedGaps, getScenarioCoverage, getWishlistInsights, getWishlistSpend } from './lib/insights'
 import { getLookSummary } from './lib/looks'
-import { loadState, saveState, syncReplacementWishlistEntries } from './lib/storage'
+import {
+  getLastSaveFailed,
+  loadState,
+  saveState,
+  subscribeToSaveStatus,
+  syncReplacementWishlistEntries,
+} from './lib/storage'
 import type { AppState, AppTab, Category, Look, LookStatus, Season, WishlistItem, WardrobeItem } from './types'
 import { appTabs } from './types'
 
@@ -45,6 +51,7 @@ function syncAppState(next: AppState): AppState {
 function App() {
   const [appState, setAppState] = useState<AppState>(() => syncAppState(loadState()))
   const [activeTab, setActiveTab] = useState<AppTab>('Home')
+  const saveFailed = useSyncExternalStore(subscribeToSaveStatus, getLastSaveFailed)
 
   useEffect(() => {
     saveState(appState)
@@ -266,6 +273,13 @@ function App() {
           </button>
         ))}
       </nav>
+
+      {saveFailed && (
+        <p className="save-warning" role="alert">
+          Your latest change could not be saved because browser storage is full. Photos take
+          the most space, so try a smaller one.
+        </p>
+      )}
 
       <main className="content-grid">
         {activeTab === 'Home' && (
