@@ -74,6 +74,23 @@ test('building a look tracks completeness and saves it', async ({ page }) => {
   await expect(statValue(page, 'Saved looks')).toHaveText('4')
 })
 
+test('pieces hidden by a scenario switch do not count toward or save into the look', async ({ page }) => {
+  await openTab(page, 'Looks')
+  await page.getByLabel('Look name').fill('Saturday')
+  await page.locator('.select-card', { hasText: 'White Oxford Shirt' }).click()
+
+  // Weekend does not allow Business Casual, so the shirt drops out of the picker.
+  await page.locator('.scenario-chip-row').getByRole('button', { name: 'Weekend' }).click()
+  await expect(page.locator('.select-card', { hasText: 'White Oxford Shirt' })).toHaveCount(0)
+  await expect(page.locator('.panel-subheader span').first()).toHaveText('0% complete · missing 3')
+
+  await page.locator('.select-card', { hasText: 'Black Tee' }).click()
+  await page.getByRole('button', { name: 'Save look' }).click()
+
+  const saved = page.locator('.look-board-card', { hasText: 'Saturday' })
+  await expect(saved.locator('.look-piece-pill')).toHaveText([/Black Tee/])
+})
+
 test('a missing piece on a saved look becomes a wishlist idea linked to that look', async ({ page }) => {
   await openTab(page, 'Looks')
   await page
