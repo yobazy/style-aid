@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { URL } from 'node:url'
 
-function extractMeta(html: string, property: string) {
+export function extractMeta(html: string, property: string) {
   const patterns = [
     new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>`, 'i'),
     new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["'][^>]*>`, 'i'),
@@ -19,7 +19,7 @@ function extractMeta(html: string, property: string) {
   return ''
 }
 
-function extractTitle(html: string) {
+export function extractTitle(html: string) {
   const match = html.match(/<title[^>]*>([^<]+)<\/title>/i)
   return match?.[1] ? decodeHtml(match[1]) : ''
 }
@@ -34,12 +34,12 @@ function decodeHtml(value: string) {
     .trim()
 }
 
-function sanitizePrice(value: string) {
+export function sanitizePrice(value: string) {
   const match = value.match(/[0-9]+(?:[.,][0-9]{2})?/)
   return match ? match[0].replace(',', '') : ''
 }
 
-function retailerFromHostname(hostname: string) {
+export function retailerFromHostname(hostname: string) {
   const parts = hostname.replace(/^www\./, '').split('.')
   return parts[0]
     ? parts[0]
@@ -61,7 +61,7 @@ function absoluteUrl(value: string, baseUrl: string) {
   }
 }
 
-async function handleImport(req: IncomingMessage, res: ServerResponse) {
+export async function handleImport(req: IncomingMessage, res: ServerResponse) {
   try {
     const requestUrl = new URL(req.url ?? '', 'http://localhost')
     const source = requestUrl.searchParams.get('url')
