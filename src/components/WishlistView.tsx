@@ -380,6 +380,7 @@ export function WishlistView({
                     className={
                       draft.scenarioIds.includes(scenario.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.scenarioIds.includes(scenario.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -403,6 +404,7 @@ export function WishlistView({
                     className={
                       draft.intendedLookIds.includes(look.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.intendedLookIds.includes(look.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -426,6 +428,7 @@ export function WishlistView({
                     className={
                       draft.intendedWithItemIds.includes(item.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.intendedWithItemIds.includes(item.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,

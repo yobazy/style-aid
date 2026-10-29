@@ -259,6 +259,7 @@ function App() {
             key={tab}
             type="button"
             className={tab === activeTab ? 'tab is-active' : 'tab'}
+            aria-current={tab === activeTab ? 'page' : undefined}
             onClick={() => setActiveTab(tab)}
           >
             {tab}

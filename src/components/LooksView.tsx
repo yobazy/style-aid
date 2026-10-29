@@ -126,6 +126,7 @@ export function LooksView({
               key={scenario.id}
               type="button"
               className={scenario.id === draft.scenarioId ? 'chip is-active' : 'chip'}
+              aria-pressed={scenario.id === draft.scenarioId}
               onClick={() =>
                 setDraft((current) => ({ ...current, scenarioId: scenario.id }))
               }
@@ -226,6 +227,7 @@ export function LooksView({
                     key={item.id}
                     type="button"
                     className={selected ? 'select-card is-selected' : 'select-card'}
+                    aria-pressed={selected}
                     onClick={() => toggleItem(item.id)}
                   >
                     {item.image ? (
