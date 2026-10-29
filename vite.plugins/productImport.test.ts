@@ -1,6 +1,21 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { extractMeta, extractTitle, handleImport, retailerFromHostname, sanitizePrice } from './productImport'
+import { lookup } from 'node:dns/promises'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  extractMeta,
+  extractTitle,
+  handleImport,
+  isNonPublicAddress,
+  retailerFromHostname,
+  sanitizePrice,
+} from './productImport'
+
+vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }))
+const lookupMock = vi.mocked(lookup) as unknown as ReturnType<typeof vi.fn>
+
+function resolvesTo(...addresses: string[]) {
+  lookupMock.mockResolvedValue(addresses.map((address) => ({ address, family: address.includes(':') ? 6 : 4 })))
+}
 
 type FakeResponse = { statusCode: number; headers: Record<string, string>; body: string }
 
@@ -24,14 +39,28 @@ async function callImport(url: string) {
   return res
 }
 
+function page(html: string, init: { ok?: boolean; status?: number; headers?: Record<string, string> } = {}) {
+  return {
+    ok: init.ok ?? true,
+    status: init.status ?? 200,
+    headers: new Headers(init.headers),
+    text: async () => html,
+  }
+}
+
 function mockPage(html: string, ok = true) {
-  const fetchMock = vi.fn(async () => ({ ok, text: async () => html }))
+  const fetchMock = vi.fn(async () => page(html, { ok, status: ok ? 200 : 404 }))
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
 
+beforeEach(() => {
+  resolvesTo('93.184.216.34')
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
+  lookupMock.mockReset()
 })
 
 describe('extractMeta', () => {
@@ -117,5 +146,74 @@ describe('handleImport', () => {
 
     expect(res.statusCode).toBe(400)
     expect(res.body).toBe('Could not import this product link.')
+  })
+
+  it.each([
+    'http://localhost:11434/',
+    'http://127.0.0.1:5173/',
+    'http://169.254.169.254/latest/meta-data/',
+    'http://192.168.1.1/',
+    'http://100.66.137.24:9000/',
+    'http://[::1]/',
+    'http://[::ffff:127.0.0.1]/',
+    'file:///etc/passwd',
+  ])('refuses to fetch %s', async (url) => {
+    const fetchMock = mockPage('<title>internal</title>')
+    const res = await callImport(`/?url=${encodeURIComponent(url)}`)
+
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toBe('Only public http or https product pages can be imported.')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('refuses a public hostname that resolves to a private address', async () => {
+    resolvesTo('10.0.0.5')
+    const fetchMock = mockPage('<title>internal</title>')
+    const res = await callImport(`/?url=${encodeURIComponent('https://sneaky.example/')}`)
+
+    expect(res.statusCode).toBe(400)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('checks every redirect hop', async () => {
+    const fetchMock = vi.fn(async () => page('', { ok: false, status: 302, headers: { location: 'http://127.0.0.1/admin' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await callImport(`/?url=${encodeURIComponent('https://shop.example/p')}`)
+
+    expect(res.body).toBe('Only public http or https product pages can be imported.')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('follows a redirect to another public page', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(page('', { ok: false, status: 301, headers: { location: '/p/new' } }))
+      .mockResolvedValueOnce(page('<meta property="og:title" content="Wool Coat">'))
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await callImport(`/?url=${encodeURIComponent('https://shop.example/p/old')}`)
+
+    expect(JSON.parse(res.body).title).toBe('Wool Coat')
+    expect(String(fetchMock.mock.calls[1][0])).toBe('https://shop.example/p/new')
+  })
+
+  it('refuses pages that declare a huge size', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => page('', { headers: { 'content-length': String(50 * 1024 * 1024) } })))
+    const res = await callImport(`/?url=${encodeURIComponent('https://shop.example/p')}`)
+
+    expect(res.body).toBe('Could not fetch shop.example.')
+  })
+})
+
+describe('isNonPublicAddress', () => {
+  it('flags loopback, private, link-local and CGNAT ranges', () => {
+    for (const address of ['127.0.0.1', '10.1.2.3', '172.20.0.1', '192.168.0.10', '169.254.1.1', '100.100.1.1', '0.0.0.0', '::1', 'fd7a:115c::1', 'fe80::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:a00:5']) {
+      expect(isNonPublicAddress(address), address).toBe(true)
+    }
+  })
+
+  it('allows public addresses', () => {
+    for (const address of ['93.184.216.34', '8.8.8.8', '172.32.0.1', '2606:4700::1111']) {
+      expect(isNonPublicAddress(address), address).toBe(false)
+    }
   })
 })
