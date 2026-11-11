@@ -117,7 +117,8 @@ test('adding and removing a wishlist product updates the spend', async ({ page }
   await expect(statValue(page, 'Wishlist spend')).toHaveText('$695')
 
   await openTab(page, 'Wishlist')
-  await page.locator('.buy-card', { hasText: 'Silk scarf' }).getByRole('button', { name: 'Remove' }).click()
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('.buy-card', { hasText: 'Silk scarf' }).getByRole('button', { name: 'Delete', exact: true }).click()
   await expect(page.locator('.buy-card', { hasText: 'Silk scarf' })).toHaveCount(0)
 })
 

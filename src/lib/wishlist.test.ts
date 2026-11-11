@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { WishlistItem } from '../types'
-import { findMergeTarget, mergeWishlistEntry } from './wishlist'
+import { findMergeTarget, mergeWishlistEntry, moveBoughtToCloset } from './wishlist'
+import type { WardrobeItem } from '../types'
 
 function wish(overrides: Partial<WishlistItem> & Pick<WishlistItem, 'id'>): WishlistItem {
   return {
@@ -87,3 +88,51 @@ describe('findMergeTarget', () => {
     expect(findMergeTarget(list, wish({ id: 'x', title: 'Something else' }))).toBeUndefined()
   })
 })
+
+describe('moveBoughtToCloset', () => {
+  const ids = () => {
+    let next = 0
+    return () => `new-${++next}`
+  }
+
+  it('adds one closet piece for a bought item and links the two', () => {
+    const result = moveBoughtToCloset([], [wish({ id: 'w1', title: 'Silk scarf', status: 'Bought', purchased: true, category: 'Accessories', image: 'data:image/jpeg;base64,x' })], ids())
+
+    expect(result.wardrobe).toEqual([
+      expect.objectContaining({ id: 'new-1', name: 'Silk scarf', category: 'Accessories', color: '', image: 'data:image/jpeg;base64,x' }),
+    ])
+    expect(result.wishlist[0].boughtWardrobeItemId).toBe('new-1')
+  })
+
+  it('does not add a second piece when the item is already linked', () => {
+    const existing: WardrobeItem[] = []
+    const first = moveBoughtToCloset(existing, [wish({ id: 'w1', status: 'Bought', purchased: true })], ids())
+    const second = moveBoughtToCloset(first.wardrobe, first.wishlist, ids())
+
+    expect(second.wardrobe).toHaveLength(1)
+    expect(second.wishlist[0].boughtWardrobeItemId).toBe('new-1')
+  })
+
+  it('does not bring back a piece the user deleted', () => {
+    const first = moveBoughtToCloset([], [wish({ id: 'w1', status: 'Bought', purchased: true })], ids())
+    const afterDelete = { ...first, wardrobe: [] }
+    const again = moveBoughtToCloset(afterDelete.wardrobe, afterDelete.wishlist, ids())
+
+    expect(again.wardrobe).toEqual([])
+  })
+
+  it('leaves items that are not bought alone', () => {
+    const item = wish({ id: 'w2', status: 'Ready to Buy' })
+    const result = moveBoughtToCloset([], [item], ids())
+
+    expect(result.wardrobe).toEqual([])
+    expect(result.wishlist).toEqual([item])
+  })
+
+  it('treats a purchased flag as bought', () => {
+    const result = moveBoughtToCloset([], [wish({ id: 'w3', status: 'Watching', purchased: true })], ids())
+
+    expect(result.wardrobe).toHaveLength(1)
+  })
+})
+

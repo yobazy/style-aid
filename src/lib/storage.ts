@@ -436,6 +436,7 @@ function createReplacementWishlistItem(item: WardrobeItem, scenarios: Scenario[]
     isReplacement: true,
     purchased: existing?.purchased ?? false,
     linkedWardrobeItemId: item.id,
+    boughtWardrobeItemId: existing?.boughtWardrobeItemId,
   }
 }
 

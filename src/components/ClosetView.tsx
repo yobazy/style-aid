@@ -25,6 +25,189 @@ type ClosetViewProps = {
   onAddItem: (draft: Omit<WardrobeItem, 'id' | 'tags'> & { tags: string[] }) => void
   onToggleFavorite: (itemId: string) => void
   onToggleReplacement: (itemId: string) => void
+  onUpdateItem: (itemId: string, patch: Partial<WardrobeItem>) => void
+  onRemoveItem: (itemId: string) => void
+}
+
+type PieceEditDraft = {
+  name: string
+  category: WardrobeItem['category']
+  color: string
+  season: Season
+  dressCode: DressCode
+  qualityRating: number
+  formality: number
+  favorite: boolean
+  needsReplacing: boolean
+  tags: string
+}
+
+function PieceEditForm({
+  item,
+  onSave,
+  onCancel,
+}: {
+  item: WardrobeItem
+  onSave: (patch: Partial<WardrobeItem>) => void
+  onCancel: () => void
+}) {
+  const [draft, setDraft] = useState<PieceEditDraft>(() => ({
+    name: item.name,
+    category: item.category,
+    color: item.color,
+    season: item.season,
+    dressCode: item.dressCode,
+    qualityRating: item.qualityRating,
+    formality: item.formality,
+    favorite: item.favorite,
+    needsReplacing: item.needsReplacing,
+    tags: item.tags.join(', '),
+  }))
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    onSave({
+      name: draft.name.trim(),
+      category: draft.category,
+      color: draft.color.trim(),
+      season: draft.season,
+      dressCode: draft.dressCode,
+      qualityRating: draft.qualityRating,
+      formality: draft.formality,
+      favorite: draft.favorite,
+      needsReplacing: draft.needsReplacing,
+      tags: draft.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    })
+  }
+
+  return (
+    <form className="item-card piece-edit-form" onSubmit={handleSubmit} aria-label={`Edit ${item.name}`}>
+      <div className="form-grid">
+        <label>
+          Name
+          <input
+            required
+            value={draft.name}
+            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+          />
+        </label>
+        <label>
+          Category
+          <select
+            value={draft.category}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, category: event.target.value as WardrobeItem['category'] }))
+            }
+          >
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Color
+          <input
+            required
+            value={draft.color}
+            onChange={(event) => setDraft((current) => ({ ...current, color: event.target.value }))}
+          />
+        </label>
+        <label>
+          Season
+          <select
+            value={draft.season}
+            onChange={(event) => setDraft((current) => ({ ...current, season: event.target.value as Season }))}
+          >
+            {seasons.map((season) => (
+              <option key={season} value={season}>
+                {season}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Dress code
+          <select
+            value={draft.dressCode}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, dressCode: event.target.value as DressCode }))
+            }
+          >
+            {dressCodes.map((dressCode) => (
+              <option key={dressCode} value={dressCode}>
+                {dressCode}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Quality
+          <select
+            value={draft.qualityRating}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, qualityRating: Number(event.target.value) }))
+            }
+          >
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <option key={rating} value={rating}>
+                {'★'.repeat(rating)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Formality
+          <input
+            type="range"
+            min="1"
+            max="5"
+            value={draft.formality}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, formality: Number(event.target.value) }))
+            }
+          />
+        </label>
+        <label className="form-span">
+          Tags
+          <input
+            value={draft.tags}
+            onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
+          />
+        </label>
+      </div>
+      <div className="composer-footer">
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={draft.favorite}
+            onChange={(event) => setDraft((current) => ({ ...current, favorite: event.target.checked }))}
+          />
+          Favorite piece
+        </label>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={draft.needsReplacing}
+            onChange={(event) => setDraft((current) => ({ ...current, needsReplacing: event.target.checked }))}
+          />
+          Needs replacing
+        </label>
+      </div>
+      <div className="button-row">
+        <button type="submit" className="primary-button">
+          Save changes
+        </button>
+        <button type="button" className="ghost-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
 }
 
 const emptyDraft: WardrobeDraft = {
@@ -47,8 +230,11 @@ export function ClosetView({
   onAddItem,
   onToggleFavorite,
   onToggleReplacement,
+  onUpdateItem,
+  onRemoveItem,
 }: ClosetViewProps) {
   const [draft, setDraft] = useState<WardrobeDraft>(emptyDraft)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [seasonFilter, setSeasonFilter] = useState<Season | 'All'>('All')
   const [categoryFilter, setCategoryFilter] =
     useState<WardrobeItem['category'] | 'All'>('All')
@@ -365,75 +551,101 @@ export function ClosetView({
         </div>
 
         <div className="card-grid">
-          {filteredWardrobe.map((item) => (
-            <article key={item.id} className="item-card">
-              <div className="piece-visual">
-                {item.image ? (
-                  <img className="piece-image" src={item.image} alt={item.name} />
-                ) : (
-                  <div
-                    className="empty-photo empty-photo-card color-fallback-stage"
-                    style={{
-                      backgroundColor: getColorSwatch(item.color),
-                      color: getSwatchTextColor(getColorSwatch(item.color)),
-                    }}
-                  >
-                    <span>{item.color}</span>
-                  </div>
-                )}
-              </div>
-              <div className="card-topline">
-                <div>
-                  <strong>{item.name}</strong>
-                  <div className="swatch-row">
-                    <span
-                      className="color-swatch"
-                      style={{ backgroundColor: getColorSwatch(item.color) }}
-                      aria-hidden="true"
-                    />
-                    <span className="swatch-label">{item.color}</span>
-                  </div>
-                </div>
-                <div className="badge-row">
-                  {item.favorite && <span className="pill pill-neutral">Favorite</span>}
-                  {item.needsReplacing && (
-                    <span className="pill pill-warn">Replace</span>
+          {filteredWardrobe.map((item) =>
+            editingId === item.id ? (
+              <PieceEditForm
+                key={item.id}
+                item={item}
+                onSave={(patch) => {
+                  onUpdateItem(item.id, patch)
+                  setEditingId(null)
+                }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <article key={item.id} className="item-card">
+                <div className="piece-visual">
+                  {item.image ? (
+                    <img className="piece-image" src={item.image} alt={item.name} />
+                  ) : (
+                    <div
+                      className="empty-photo empty-photo-card color-fallback-stage"
+                      style={{
+                        backgroundColor: getColorSwatch(item.color),
+                        color: getSwatchTextColor(getColorSwatch(item.color)),
+                      }}
+                    >
+                      <span>{item.color}</span>
+                    </div>
                   )}
                 </div>
-              </div>
-              <p>
-                {item.category} · {item.color} · {item.season}
-              </p>
-              <p>
-                {item.dressCode} · Formality {item.formality}/5
-              </p>
-              <p>{'★'.repeat(item.qualityRating)}</p>
-              <p>Used in {formatLookCount(useCount[item.id] ?? 0)}</p>
-              <div className="tag-row">
-                {item.tags.map((tag) => (
-                  <span key={tag} className="chip">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <div className="button-row">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => onToggleFavorite(item.id)}
-                >
-                  {item.favorite ? 'Unfavorite' : 'Favorite'}
-                </button>
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={() => onToggleReplacement(item.id)}
-                >
-                  {item.needsReplacing ? 'Keep for now' : 'Mark to replace'}
-                </button>
-              </div>
-            </article>
-          ))}
+                <div className="card-topline">
+                  <div>
+                    <strong>{item.name}</strong>
+                    <div className="swatch-row">
+                      <span
+                        className="color-swatch"
+                        style={{ backgroundColor: getColorSwatch(item.color) }}
+                        aria-hidden="true"
+                      />
+                      <span className="swatch-label">{item.color}</span>
+                    </div>
+                  </div>
+                  <div className="badge-row">
+                    {item.favorite && <span className="pill pill-neutral">Favorite</span>}
+                    {item.needsReplacing && (
+                      <span className="pill pill-warn">Replace</span>
+                    )}
+                  </div>
+                </div>
+                <p>
+                  {item.category} · {item.color} · {item.season}
+                </p>
+                <p>
+                  {item.dressCode} · Formality {item.formality}/5
+                </p>
+                <p>{'★'.repeat(item.qualityRating)}</p>
+                <p>Used in {formatLookCount(useCount[item.id] ?? 0)}</p>
+                <div className="tag-row">
+                  {item.tags.map((tag) => (
+                    <span key={tag} className="chip">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="button-row">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => onToggleFavorite(item.id)}
+                  >
+                    {item.favorite ? 'Unfavorite' : 'Favorite'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => onToggleReplacement(item.id)}
+                  >
+                    {item.needsReplacing ? 'Keep for now' : 'Mark to replace'}
+                  </button>
+                  <button type="button" className="ghost-button" onClick={() => setEditingId(item.id)}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => {
+                      if (window.confirm(`Delete ${item.name} from your closet?`)) {
+                        onRemoveItem(item.id)
+                      }
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ),
+          )}
         </div>
       </section>
     </>

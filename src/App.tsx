@@ -13,7 +13,7 @@ import {
   getWishlistSpend,
 } from './lib/insights'
 import { getLookSummary } from './lib/looks'
-import { findMergeTarget, mergeWishlistEntry } from './lib/wishlist'
+import { findMergeTarget, mergeWishlistEntry, moveBoughtToCloset } from './lib/wishlist'
 import {
   getLastSaveFailed,
   loadState,
@@ -24,10 +24,12 @@ import {
 import type { AppState, AppTab, Category, Look, LookStatus, Season, WishlistItem, WardrobeItem } from './types'
 import { appTabs } from './types'
 
-function syncAppState(next: AppState): AppState {
+function syncAppState(input: AppState): AppState {
+  const moved = moveBoughtToCloset(input.wardrobe, input.wishlist)
+  const next = { ...input, wardrobe: moved.wardrobe }
   const syncedWishlist = syncReplacementWishlistEntries(
     next.wardrobe,
-    next.wishlist,
+    moved.wishlist,
     next.scenarios,
   )
   const scenarioMap = new Map(next.scenarios.map((scenario) => [scenario.id, scenario]))
@@ -125,6 +127,28 @@ function App() {
         },
         ...current.wardrobe,
       ],
+    }))
+  }
+
+  function updateWardrobeItem(itemId: string, patch: Partial<WardrobeItem>) {
+    updateState((current) => ({
+      ...current,
+      wardrobe: current.wardrobe.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+    }))
+  }
+
+  function removeWardrobeItem(itemId: string) {
+    updateState((current) => ({
+      ...current,
+      wardrobe: current.wardrobe.filter((item) => item.id !== itemId),
+      looks: current.looks.map((look) => ({
+        ...look,
+        itemIds: look.itemIds.filter((id) => id !== itemId),
+      })),
+      wishlist: current.wishlist.map((item) => ({
+        ...item,
+        intendedWithItemIds: item.intendedWithItemIds.filter((id) => id !== itemId),
+      })),
     }))
   }
 
@@ -313,6 +337,8 @@ function App() {
             onAddItem={addWardrobeItem}
             onToggleFavorite={toggleWardrobeFavorite}
             onToggleReplacement={toggleWardrobeReplacement}
+            onUpdateItem={updateWardrobeItem}
+            onRemoveItem={removeWardrobeItem}
           />
         )}
 

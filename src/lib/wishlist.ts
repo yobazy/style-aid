@@ -1,4 +1,45 @@
-import type { WishlistItem } from '../types'
+import type { WardrobeItem, WishlistItem } from '../types'
+
+export function isBoughtWishlistItem(item: WishlistItem) {
+  return item.status === 'Bought' || item.purchased
+}
+
+// Every bought wishlist item becomes one closet piece. The wishlist item keeps a link to
+// the piece it created, so it is only ever moved once: deleting that piece later does not
+// bring it back, and buying it again does not add a second copy.
+export function moveBoughtToCloset(
+  wardrobe: WardrobeItem[],
+  wishlist: WishlistItem[],
+  createId: () => string = () => crypto.randomUUID(),
+) {
+  const added: WardrobeItem[] = []
+
+  const nextWishlist = wishlist.map((item) => {
+    if (!isBoughtWishlistItem(item) || item.boughtWardrobeItemId) {
+      return item
+    }
+
+    const piece: WardrobeItem = {
+      id: createId(),
+      name: item.title,
+      category: item.category,
+      color: '',
+      season: item.season,
+      qualityRating: 3,
+      needsReplacing: false,
+      dressCode: 'Casual',
+      formality: 2,
+      favorite: false,
+      tags: [],
+      image: item.image,
+    }
+    added.push(piece)
+
+    return { ...item, boughtWardrobeItemId: piece.id }
+  })
+
+  return { wardrobe: [...added, ...wardrobe], wishlist: nextWishlist }
+}
 
 function preferFilled(incoming: string | undefined, existing: string | undefined) {
   return incoming?.trim() ? incoming : existing
