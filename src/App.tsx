@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { ClosetView } from './components/ClosetView'
 import { DashboardView } from './components/DashboardView'
@@ -58,11 +58,19 @@ function syncAppState(next: AppState): AppState {
 function App() {
   const [appState, setAppState] = useState<AppState>(() => syncAppState(loadState()))
   const [activeTab, setActiveTab] = useState<AppTab>('Home')
+  const tabBarRef = useRef<HTMLElement>(null)
   const saveFailed = useSyncExternalStore(subscribeToSaveStatus, getLastSaveFailed)
 
   useEffect(() => {
     saveState(appState)
   }, [appState])
+
+  // On phones the tab bar scrolls sideways, so bring the active tab into view.
+  useEffect(() => {
+    tabBarRef.current
+      ?.querySelector<HTMLElement>('.tab.is-active')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [activeTab])
 
   function updateState(updater: (current: AppState) => AppState) {
     setAppState((current) => syncAppState(updater(current)))
@@ -253,7 +261,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <nav className="tab-bar" aria-label="Primary">
+      <nav className="tab-bar" aria-label="Primary" ref={tabBarRef}>
         {appTabs.map((tab) => (
           <button
             key={tab}
