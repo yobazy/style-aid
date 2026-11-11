@@ -21,7 +21,7 @@ import {
   subscribeToSaveStatus,
   syncReplacementWishlistEntries,
 } from './lib/storage'
-import type { AppState, AppTab, Category, Look, LookStatus, Season, WishlistItem, WardrobeItem } from './types'
+import type { AppState, AppTab, Category, Look, Season, WishlistItem, WardrobeItem } from './types'
 import { appTabs } from './types'
 
 function syncAppState(input: AppState): AppState {
@@ -41,10 +41,12 @@ function syncAppState(input: AppState): AppState {
       { ...look, wishlistItemIds },
       next.wardrobe,
       scenarioMap.get(look.scenarioId),
+      syncedWishlist,
     )
 
     return {
       ...look,
+      status: summary.recommendedStatus,
       missingCategories: summary.missingCategories,
       wishlistItemIds,
     }
@@ -194,13 +196,6 @@ function App() {
     }))
   }
 
-  function updateLookStatus(lookId: string, status: LookStatus) {
-    updateState((current) => ({
-      ...current,
-      looks: current.looks.map((look) => (look.id === lookId ? { ...look, status } : look)),
-    }))
-  }
-
   function upsertWishlistItem(item: WishlistItem) {
     updateState((current) => {
       const existing = findMergeTarget(current.wishlist, item)
@@ -325,7 +320,6 @@ function App() {
             looks={appState.looks}
             wishlist={appState.wishlist}
             onAddLook={addLook}
-            onUpdateLookStatus={updateLookStatus}
             onCreateWishlistIdea={createWishlistIdea}
           />
         )}

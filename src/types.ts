@@ -115,6 +115,7 @@ export type LookSummary = {
   totalRequirementCount: number
   completenessPercent: number
   recommendedStatus: LookStatus
+  statusReason: string
   isComplete: boolean
 }
 

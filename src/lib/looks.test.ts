@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { scenarioPresets } from '../data/scenarios'
-import type { Look, Scenario, WardrobeItem } from '../types'
+import type { Look, Scenario, WardrobeItem, WishlistItem } from '../types'
 import {
+  describeLookStatus,
   getLookSummary,
   getUseCountByItem,
   itemMatchesLookFilters,
@@ -92,10 +93,58 @@ describe('getLookSummary', () => {
     expect(summary.recommendedStatus).toBe('Needs One More Piece')
   })
 
-  it('suggests Wishlist-Backed when several pieces are missing and a wishlist item backs the look', () => {
-    const summary = getLookSummary(look({ itemIds: ['top'], wishlistItemIds: ['wish-1'] }), wardrobe, work)
+  it('derives Wishlist-Backed from the linked wishlist items, not from a count', () => {
+    const wishes = [
+      wish({ id: 'wish-bottoms', category: 'Bottoms' }),
+      wish({ id: 'wish-shoes', category: 'Shoes' }),
+      wish({ id: 'wish-bags', category: 'Bags' }),
+    ]
+    const summary = getLookSummary(
+      look({ itemIds: ['top'], wishlistItemIds: ['wish-bottoms', 'wish-shoes', 'wish-bags'] }),
+      wardrobe,
+      work,
+      wishes,
+    )
 
     expect(summary.recommendedStatus).toBe('Wishlist-Backed')
+    expect(summary.statusReason).toBe('Missing 3 pieces, and each one has a wishlist item linked to this look.')
+  })
+
+  it('does not count a bought wishlist item as backing a missing piece', () => {
+    const wishes = [wish({ id: 'wish-bottoms', category: 'Bottoms', status: 'Bought' })]
+    const summary = getLookSummary(look({ itemIds: ['top'], wishlistItemIds: ['wish-bottoms'] }), wardrobe, work, wishes)
+
+    expect(summary.recommendedStatus).toBe('Needs One More Piece')
+  })
+
+  it('is Ready with a completed look even if it has linked wishlist items', () => {
+    const wishes = [wish({ id: 'wish-bags', category: 'Bags' })]
+    const summary = getLookSummary(
+      look({ itemIds: ['top', 'bottom', 'shoes', 'bag'], wishlistItemIds: ['wish-bags'] }),
+      wardrobe,
+      work,
+      wishes,
+    )
+
+    expect(summary.recommendedStatus).toBe('Ready')
+    expect(summary.statusReason).toBe('Nothing is missing. Every piece this scenario needs is in the closet.')
+  })
+
+  it('needs one more piece when a missing category has no wishlist item', () => {
+    const wishes = [wish({ id: 'wish-bags', category: 'Bags' })]
+    const summary = getLookSummary(look({ itemIds: ['top'], wishlistItemIds: ['wish-bags'] }), wardrobe, work, wishes)
+
+    expect(summary.recommendedStatus).toBe('Needs One More Piece')
+    expect(summary.statusReason).toBe(
+      'Missing 3 pieces. Still needs a closet piece or a wishlist item for: bottom, shoe option.',
+    )
+  })
+
+  it('ignores a wishlist item that is not linked to the look', () => {
+    const wishes = [wish({ id: 'other', category: 'Bottoms' }), wish({ id: 'wish-shoes', category: 'Shoes' }), wish({ id: 'wish-bags', category: 'Bags' })]
+    const summary = getLookSummary(look({ itemIds: ['top'], wishlistItemIds: ['wish-shoes', 'wish-bags'] }), wardrobe, work, wishes)
+
+    expect(summary.recommendedStatus).toBe('Needs One More Piece')
   })
 
   it('counts each required slot when minCount is above one', () => {
@@ -126,6 +175,45 @@ describe('getLookSummary', () => {
     expect(getLookSummary(look(), wardrobe, open).completenessPercent).toBe(100)
   })
 })
+
+describe('describeLookStatus', () => {
+  it('uses one backing wishlist item per missing piece', () => {
+    expect(describeLookStatus(['Bottoms', 'Bottoms'], ['Bottoms']).status).toBe('Needs One More Piece')
+    expect(describeLookStatus(['Bottoms'], ['Bottoms', 'Bottoms']).status).toBe('Wishlist-Backed')
+  })
+
+  it('is Ready when nothing is missing', () => {
+    expect(describeLookStatus([], []).status).toBe('Ready')
+  })
+
+  it('explains a single missing piece in the singular', () => {
+    expect(describeLookStatus(['Shoes'], []).reason).toBe(
+      'Missing 1 piece. Still needs a closet piece or a wishlist item for: shoe option.',
+    )
+  })
+})
+
+function wish(overrides: Partial<WishlistItem> & Pick<WishlistItem, 'id' | 'category'>): WishlistItem {
+  return {
+    title: overrides.id,
+    season: 'All-season',
+    image: undefined,
+    brand: '',
+    retailer: '',
+    productUrl: '',
+    targetPrice: '',
+    currentPrice: '',
+    priority: 'Medium',
+    status: 'Researching',
+    notes: '',
+    scenarioIds: [],
+    intendedWithItemIds: [],
+    intendedLookIds: [],
+    isReplacement: false,
+    purchased: false,
+    ...overrides,
+  }
+}
 
 describe('getUseCountByItem', () => {
   it('counts how many looks use each piece', () => {

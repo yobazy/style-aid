@@ -1,8 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { getColorSwatch } from '../lib/color'
 import { getLookSummary, itemMatchesLookFilters, singularCategory } from '../lib/looks'
-import type { Category, Look, LookStatus, Scenario, Season, WardrobeItem, WishlistItem } from '../types'
-import { lookStatuses, seasons } from '../types'
+import type { Category, Look, Scenario, Season, WardrobeItem, WishlistItem } from '../types'
+import { seasons } from '../types'
 
 type LookDraft = {
   name: string
@@ -20,7 +20,6 @@ type LooksViewProps = {
   looks: Look[]
   wishlist: WishlistItem[]
   onAddLook: (draft: Omit<Look, 'id' | 'status' | 'missingCategories' | 'wishlistItemIds'>) => void
-  onUpdateLookStatus: (lookId: string, status: LookStatus) => void
   onCreateWishlistIdea: (input: {
     title: string
     category: Category
@@ -48,7 +47,6 @@ export function LooksView({
   looks,
   wishlist,
   onAddLook,
-  onUpdateLookStatus,
   onCreateWishlistIdea,
 }: LooksViewProps) {
   const [draft, setDraft] = useState<LookDraft>(emptyDraft)
@@ -301,11 +299,15 @@ export function LooksView({
             <h2>Scenario-ready outfits</h2>
           </div>
         </div>
+        <p className="helper-text">
+          Status follows the pieces. Ready means nothing is missing. Wishlist-Backed means every
+          missing piece has a wishlist item linked to the look. Anything else needs one more piece.
+        </p>
 
         <div className="look-board-grid">
           {looks.map((look) => {
             const scenario = scenarios.find((entry) => entry.id === look.scenarioId)
-            const summary = getLookSummary(look, wardrobe, scenario)
+            const summary = getLookSummary(look, wardrobe, scenario, wishlist)
             const linkedWishlist = wishlist.filter((item) =>
               item.intendedLookIds.includes(look.id),
             )
@@ -370,21 +372,15 @@ export function LooksView({
                 </div>
 
                 <div className="look-meta-grid">
-                  <label>
-                    Status
-                    <select
-                      value={look.status}
-                      onChange={(event) =>
-                        onUpdateLookStatus(look.id, event.target.value as LookStatus)
-                      }
-                    >
-                      {lookStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div>
+                    <strong>Status</strong>
+                    <p>
+                      <span className={look.status === 'Ready' ? 'pill pill-good' : 'pill pill-neutral'}>
+                        {look.status}
+                      </span>
+                    </p>
+                    <p className="helper-text">{summary.statusReason}</p>
+                  </div>
                   <div>
                     <strong>Still needs</strong>
                     <div className="tag-row">
