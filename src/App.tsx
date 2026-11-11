@@ -1,20 +1,35 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { ClosetView } from './components/ClosetView'
 import { DashboardView } from './components/DashboardView'
 import { InsightsView } from './components/InsightsView'
 import { LooksView } from './components/LooksView'
 import { WishlistView } from './components/WishlistView'
-import { getRankedGaps, getScenarioCoverage, getWishlistInsights, getWishlistSpend } from './lib/insights'
+import {
+  getRankedGaps,
+  getScenarioCoverage,
+  getTopWishlistInsights,
+  getWishlistInsights,
+  getWishlistSpend,
+} from './lib/insights'
 import { getLookSummary } from './lib/looks'
-import { loadState, saveState, syncReplacementWishlistEntries } from './lib/storage'
-import type { AppState, AppTab, Category, Look, LookStatus, Season, WishlistItem, WardrobeItem } from './types'
+import { findMergeTarget, mergeWishlistEntry, moveBoughtToCloset } from './lib/wishlist'
+import {
+  getLastSaveFailed,
+  loadState,
+  saveState,
+  subscribeToSaveStatus,
+  syncReplacementWishlistEntries,
+} from './lib/storage'
+import type { AppState, AppTab, Category, Look, Season, WishlistItem, WardrobeItem } from './types'
 import { appTabs } from './types'
 
-function syncAppState(next: AppState): AppState {
+function syncAppState(input: AppState): AppState {
+  const moved = moveBoughtToCloset(input.wardrobe, input.wishlist)
+  const next = { ...input, wardrobe: moved.wardrobe }
   const syncedWishlist = syncReplacementWishlistEntries(
     next.wardrobe,
-    next.wishlist,
+    moved.wishlist,
     next.scenarios,
   )
   const scenarioMap = new Map(next.scenarios.map((scenario) => [scenario.id, scenario]))
@@ -26,10 +41,12 @@ function syncAppState(next: AppState): AppState {
       { ...look, wishlistItemIds },
       next.wardrobe,
       scenarioMap.get(look.scenarioId),
+      syncedWishlist,
     )
 
     return {
       ...look,
+      status: summary.recommendedStatus,
       missingCategories: summary.missingCategories,
       wishlistItemIds,
     }
@@ -45,10 +62,19 @@ function syncAppState(next: AppState): AppState {
 function App() {
   const [appState, setAppState] = useState<AppState>(() => syncAppState(loadState()))
   const [activeTab, setActiveTab] = useState<AppTab>('Home')
+  const tabBarRef = useRef<HTMLElement>(null)
+  const saveFailed = useSyncExternalStore(subscribeToSaveStatus, getLastSaveFailed)
 
   useEffect(() => {
     saveState(appState)
   }, [appState])
+
+  // On phones the tab bar scrolls sideways, so bring the active tab into view.
+  useEffect(() => {
+    tabBarRef.current
+      ?.querySelector<HTMLElement>('.tab.is-active')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [activeTab])
 
   function updateState(updater: (current: AppState) => AppState) {
     setAppState((current) => syncAppState(updater(current)))
@@ -89,7 +115,7 @@ function App() {
   )
 
   const topWishlist = useMemo(
-    () => [...wishlistInsights].sort((left, right) => right.usefulnessScore - left.usefulnessScore).slice(0, 3),
+    () => getTopWishlistInsights(wishlistInsights, 3),
     [wishlistInsights],
   )
 
@@ -103,6 +129,28 @@ function App() {
         },
         ...current.wardrobe,
       ],
+    }))
+  }
+
+  function updateWardrobeItem(itemId: string, patch: Partial<WardrobeItem>) {
+    updateState((current) => ({
+      ...current,
+      wardrobe: current.wardrobe.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+    }))
+  }
+
+  function removeWardrobeItem(itemId: string) {
+    updateState((current) => ({
+      ...current,
+      wardrobe: current.wardrobe.filter((item) => item.id !== itemId),
+      looks: current.looks.map((look) => ({
+        ...look,
+        itemIds: look.itemIds.filter((id) => id !== itemId),
+      })),
+      wishlist: current.wishlist.map((item) => ({
+        ...item,
+        intendedWithItemIds: item.intendedWithItemIds.filter((id) => id !== itemId),
+      })),
     }))
   }
 
@@ -148,21 +196,9 @@ function App() {
     }))
   }
 
-  function updateLookStatus(lookId: string, status: LookStatus) {
-    updateState((current) => ({
-      ...current,
-      looks: current.looks.map((look) => (look.id === lookId ? { ...look, status } : look)),
-    }))
-  }
-
   function upsertWishlistItem(item: WishlistItem) {
     updateState((current) => {
-      const existing = current.wishlist.find(
-        (entry) =>
-          entry.title.toLowerCase() === item.title.toLowerCase() &&
-          entry.category === item.category &&
-          entry.status !== 'Bought',
-      )
+      const existing = findMergeTarget(current.wishlist, item)
 
       if (!existing) {
         return {
@@ -171,17 +207,7 @@ function App() {
         }
       }
 
-      const merged: WishlistItem = {
-        ...existing,
-        ...item,
-        id: existing.id,
-        image: item.image || existing.image,
-        scenarioIds: [...new Set([...existing.scenarioIds, ...item.scenarioIds])],
-        intendedLookIds: [...new Set([...existing.intendedLookIds, ...item.intendedLookIds])],
-        intendedWithItemIds: [
-          ...new Set([...existing.intendedWithItemIds, ...item.intendedWithItemIds]),
-        ],
-      }
+      const merged = mergeWishlistEntry(existing, item)
 
       return {
         ...current,
@@ -254,18 +280,26 @@ function App() {
 
   return (
     <div className="app-shell">
-      <nav className="tab-bar" aria-label="Primary">
+      <nav className="tab-bar" aria-label="Primary" ref={tabBarRef}>
         {appTabs.map((tab) => (
           <button
             key={tab}
             type="button"
             className={tab === activeTab ? 'tab is-active' : 'tab'}
+            aria-current={tab === activeTab ? 'page' : undefined}
             onClick={() => setActiveTab(tab)}
           >
             {tab}
           </button>
         ))}
       </nav>
+
+      {saveFailed && (
+        <p className="save-warning" role="alert">
+          Your latest change could not be saved because browser storage is full. Photos take
+          the most space, so try a smaller one.
+        </p>
+      )}
 
       <main className="content-grid">
         {activeTab === 'Home' && (
@@ -286,7 +320,6 @@ function App() {
             looks={appState.looks}
             wishlist={appState.wishlist}
             onAddLook={addLook}
-            onUpdateLookStatus={updateLookStatus}
             onCreateWishlistIdea={createWishlistIdea}
           />
         )}
@@ -298,6 +331,8 @@ function App() {
             onAddItem={addWardrobeItem}
             onToggleFavorite={toggleWardrobeFavorite}
             onToggleReplacement={toggleWardrobeReplacement}
+            onUpdateItem={updateWardrobeItem}
+            onRemoveItem={removeWardrobeItem}
           />
         )}
 

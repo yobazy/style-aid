@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { formatCurrency } from '../lib/insights'
+import { formatCurrency, formatLookCount, parsePrice } from '../lib/insights'
 import { importProductFromUrl } from '../lib/productImport'
 import type {
   Category,
@@ -64,6 +64,133 @@ const emptyDraft: WishlistDraft = {
   intendedWithItemIds: [],
 }
 
+type WishlistEditDraft = {
+  title: string
+  category: Category
+  brand: string
+  retailer: string
+  productUrl: string
+  targetPrice: string
+  currentPrice: string
+  notes: string
+}
+
+function WishlistEditForm({
+  item,
+  onSave,
+  onCancel,
+}: {
+  item: WishlistItem
+  onSave: (patch: Partial<WishlistItem>) => void
+  onCancel: () => void
+}) {
+  const [draft, setDraft] = useState<WishlistEditDraft>(() => ({
+    title: item.title,
+    category: item.category,
+    brand: item.brand,
+    retailer: item.retailer,
+    productUrl: item.productUrl,
+    targetPrice: item.targetPrice,
+    currentPrice: item.currentPrice,
+    notes: item.notes,
+  }))
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    onSave({
+      title: draft.title.trim(),
+      category: draft.category,
+      brand: draft.brand.trim(),
+      retailer: draft.retailer.trim(),
+      productUrl: draft.productUrl.trim(),
+      targetPrice: draft.targetPrice.trim(),
+      currentPrice: draft.currentPrice.trim(),
+      notes: draft.notes.trim(),
+    })
+  }
+
+  return (
+    <form className="list-card buy-card piece-edit-form" onSubmit={handleSubmit} aria-label={`Edit ${item.title}`}>
+      <div className="form-grid">
+        <label>
+          Title
+          <input
+            required
+            value={draft.title}
+            onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+          />
+        </label>
+        <label>
+          Category
+          <select
+            value={draft.category}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, category: event.target.value as Category }))
+            }
+          >
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Brand
+          <input
+            value={draft.brand}
+            onChange={(event) => setDraft((current) => ({ ...current, brand: event.target.value }))}
+          />
+        </label>
+        <label>
+          Retailer
+          <input
+            value={draft.retailer}
+            onChange={(event) => setDraft((current) => ({ ...current, retailer: event.target.value }))}
+          />
+        </label>
+        <label className="form-span">
+          Product URL
+          <input
+            value={draft.productUrl}
+            onChange={(event) => setDraft((current) => ({ ...current, productUrl: event.target.value }))}
+          />
+        </label>
+        <label>
+          Target price
+          <input
+            value={draft.targetPrice}
+            onChange={(event) => setDraft((current) => ({ ...current, targetPrice: event.target.value }))}
+          />
+        </label>
+        <label>
+          Current price
+          <input
+            value={draft.currentPrice}
+            onChange={(event) => setDraft((current) => ({ ...current, currentPrice: event.target.value }))}
+          />
+        </label>
+        <label className="form-span">
+          Notes
+          <textarea
+            rows={3}
+            value={draft.notes}
+            onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
+          />
+        </label>
+      </div>
+      <div className="button-row">
+        <button type="submit" className="primary-button">
+          Save changes
+        </button>
+        <button type="button" className="ghost-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 function toggleValue(list: string[], value: string) {
   return list.includes(value) ? list.filter((entry) => entry !== value) : [...list, value]
 }
@@ -79,6 +206,7 @@ export function WishlistView({
   onRemoveWishlistItem,
 }: WishlistViewProps) {
   const [draft, setDraft] = useState<WishlistDraft>(emptyDraft)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [sortMode, setSortMode] = useState<'usefulness' | 'priority' | 'status'>(
     'usefulness',
   )
@@ -380,6 +508,7 @@ export function WishlistView({
                     className={
                       draft.scenarioIds.includes(scenario.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.scenarioIds.includes(scenario.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -403,6 +532,7 @@ export function WishlistView({
                     className={
                       draft.intendedLookIds.includes(look.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.intendedLookIds.includes(look.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -426,6 +556,7 @@ export function WishlistView({
                     className={
                       draft.intendedWithItemIds.includes(item.id) ? 'chip is-active' : 'chip'
                     }
+                    aria-pressed={draft.intendedWithItemIds.includes(item.id)}
                     onClick={() =>
                       setDraft((current) => ({
                         ...current,
@@ -479,6 +610,20 @@ export function WishlistView({
             const linkedPieces = wardrobe.filter((wardrobeItem) =>
               item.intendedWithItemIds.includes(wardrobeItem.id),
             )
+
+            if (editingId === item.id) {
+              return (
+                <WishlistEditForm
+                  key={item.id}
+                  item={item}
+                  onSave={(patch) => {
+                    onUpdateWishlistItem(item.id, patch)
+                    setEditingId(null)
+                  }}
+                  onCancel={() => setEditingId(null)}
+                />
+              )
+            }
 
             return (
               <article key={item.id} className="list-card buy-card">
@@ -553,10 +698,10 @@ export function WishlistView({
 
                 <div className="meta-row">
                   <span>
-                    Est. spend {formatCurrency(Number(item.currentPrice || item.targetPrice || 0))}
+                    Est. spend {formatCurrency(parsePrice(item.currentPrice || item.targetPrice))}
                   </span>
                   <span>Usefulness {insight?.usefulnessScore ?? 0}</span>
-                  <span>Unlocks {insight?.unlockedLookCount ?? 0} looks</span>
+                  <span>Unlocks {formatLookCount(insight?.unlockedLookCount ?? 0)}</span>
                   {insight?.costPerLook !== null && insight?.costPerLook !== undefined && (
                     <span>{formatCurrency(insight.costPerLook)}/look</span>
                   )}
@@ -589,12 +734,19 @@ export function WishlistView({
                   ) : (
                     <span className="helper-text">No product link yet</span>
                   )}
+                  <button type="button" className="ghost-button" onClick={() => setEditingId(item.id)}>
+                    Edit
+                  </button>
                   <button
                     type="button"
                     className="ghost-button"
-                    onClick={() => onRemoveWishlistItem(item.id)}
+                    onClick={() => {
+                      if (window.confirm(`Delete ${item.title} from your wishlist?`)) {
+                        onRemoveWishlistItem(item.id)
+                      }
+                    }}
                   >
-                    Remove
+                    Delete
                   </button>
                 </div>
               </article>

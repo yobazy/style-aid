@@ -92,6 +92,7 @@ export type WishlistItem = {
   isReplacement: boolean
   purchased: boolean
   linkedWardrobeItemId?: string
+  boughtWardrobeItemId?: string
 }
 
 export type StyleProfile = {
@@ -114,6 +115,7 @@ export type LookSummary = {
   totalRequirementCount: number
   completenessPercent: number
   recommendedStatus: LookStatus
+  statusReason: string
   isComplete: boolean
 }
 

@@ -16,6 +16,10 @@ export function parsePrice(value: string) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+export function formatLookCount(count: number) {
+  return `${count} ${count === 1 ? 'look' : 'looks'}`
+}
+
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -145,6 +149,14 @@ export function getWishlistInsights(state: AppState): WishlistInsight[] {
       costPerLook: lookCount > 0 && workingPrice > 0 ? workingPrice / lookCount : null,
     }
   })
+}
+
+// Most useful items still to buy, best first.
+export function getTopWishlistInsights(insights: WishlistInsight[], limit: number) {
+  return insights
+    .filter(({ item }) => item.status !== 'Bought' && !item.purchased)
+    .sort((left, right) => right.usefulnessScore - left.usefulnessScore)
+    .slice(0, limit)
 }
 
 export function getWishlistSpend(wishlist: WishlistItem[]) {

@@ -7,7 +7,9 @@ import type {
   Scenario,
   Season,
   WardrobeItem,
+  WishlistItem,
 } from '../types'
+import { isBoughtWishlistItem } from './wishlist'
 
 export function itemMatchesSeason(itemSeason: Season, targetSeason: Season) {
   return targetSeason === 'All-season' || itemSeason === 'All-season' || itemSeason === targetSeason
@@ -40,10 +42,56 @@ export function categoriesForMissing(requirementCategory: Category, amount: numb
   return Array.from({ length: amount }, () => requirementCategory)
 }
 
+// The look status is derived from completeness, never set by hand:
+// - Ready: nothing is missing.
+// - Wishlist-Backed: something is missing, and every missing piece has a wishlist item
+//   in the same category linked to this look that is not bought yet (one item per piece).
+// - Needs One More Piece: anything else.
+export function describeLookStatus(
+  missingCategories: Category[],
+  backingCategories: Category[],
+): { status: LookStatus; reason: string } {
+  if (missingCategories.length === 0) {
+    return {
+      status: 'Ready',
+      reason: 'Nothing is missing. Every piece this scenario needs is in the closet.',
+    }
+  }
+
+  const available = [...backingCategories]
+  const unbacked: Category[] = []
+  for (const category of missingCategories) {
+    const index = available.indexOf(category)
+    if (index === -1) {
+      unbacked.push(category)
+    } else {
+      available.splice(index, 1)
+    }
+  }
+
+  const count = missingCategories.length
+  const pieces = `${count} ${count === 1 ? 'piece' : 'pieces'}`
+
+  if (unbacked.length === 0) {
+    return {
+      status: 'Wishlist-Backed',
+      reason: `Missing ${pieces}, and each one has a wishlist item linked to this look.`,
+    }
+  }
+
+  return {
+    status: 'Needs One More Piece',
+    reason: `Missing ${pieces}. Still needs a closet piece or a wishlist item for: ${unbacked
+      .map(singularCategory)
+      .join(', ')}.`,
+  }
+}
+
 export function getLookSummary(
   look: Look,
   wardrobe: WardrobeItem[],
   scenario: Scenario | undefined,
+  wishlist: WishlistItem[] = [],
 ): LookSummary {
   const itemMap = new Map(wardrobe.map((item) => [item.id, item]))
   const items = look.itemIds
@@ -58,6 +106,7 @@ export function getLookSummary(
       totalRequirementCount: 0,
       completenessPercent: 0,
       recommendedStatus: look.status,
+      statusReason: '',
       isComplete: false,
     }
   }
@@ -95,12 +144,10 @@ export function getLookSummary(
       ? 100
       : Math.round((coveredRequirementCount / totalRequirementCount) * 100)
 
-  let recommendedStatus: LookStatus = 'Ready'
-  if (missingCategories.length > 1 && look.wishlistItemIds.length > 0) {
-    recommendedStatus = 'Wishlist-Backed'
-  } else if (missingCategories.length > 0) {
-    recommendedStatus = 'Needs One More Piece'
-  }
+  const backingCategories = wishlist
+    .filter((item) => look.wishlistItemIds.includes(item.id) && !isBoughtWishlistItem(item))
+    .map((item) => item.category)
+  const { status, reason } = describeLookStatus(missingCategories, backingCategories)
 
   return {
     items,
@@ -108,7 +155,8 @@ export function getLookSummary(
     coveredRequirementCount,
     totalRequirementCount,
     completenessPercent,
-    recommendedStatus,
+    recommendedStatus: status,
+    statusReason: reason,
     isComplete: missingCategories.length === 0,
   }
 }

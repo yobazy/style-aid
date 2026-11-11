@@ -27,3 +27,10 @@ export function getColorSwatch(color: string) {
   const firstWord = normalized.split(/\s+/)[0]
   return colorMap[firstWord] ?? '#6b7280'
 }
+
+// Dark or light label text, whichever reads better on the given #rrggbb swatch.
+export function getSwatchTextColor(swatch: string) {
+  const [r, g, b] = [1, 3, 5].map((start) => parseInt(swatch.slice(start, start + 2), 16) / 255)
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return luminance > 0.45 ? 'rgba(10, 10, 10, 0.9)' : 'rgba(243, 241, 234, 0.92)'
+}

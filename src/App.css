@@ -46,8 +46,6 @@
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .hero h1,
@@ -164,8 +162,6 @@
   background: rgba(255, 255, 255, 0.02);
   border-color: var(--border);
   color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   font-size: 0.78rem;
 }
 
@@ -254,8 +250,6 @@
 .progress-ring-inner span {
   font-size: 0.72rem;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .form-grid {
@@ -556,8 +550,6 @@ textarea {
 .color-fallback-stage {
   color: rgba(10, 10, 10, 0.9);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .wishlist-import-placeholder {
@@ -607,8 +599,6 @@ textarea {
 .missing-piece-eyebrow {
   font-size: 0.72rem;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
 }
 
 .look-piece-pill {
@@ -648,6 +638,15 @@ textarea {
 }
 
 .helper-text-error {
+  color: var(--pill-danger-text);
+}
+
+.save-warning {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--warn-border);
+  border-radius: 16px;
+  background: var(--warn-bg);
   color: var(--pill-danger-text);
 }
 
@@ -692,8 +691,6 @@ textarea {
 .radar-label {
   fill: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 button:disabled {
@@ -720,8 +717,6 @@ button:disabled {
 .swatch-label {
   color: var(--muted);
   font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .item-card {
@@ -786,7 +781,19 @@ a:hover {
   }
 
   .tab-bar {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .panel-header,

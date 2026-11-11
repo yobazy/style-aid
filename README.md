@@ -1,73 +1,40 @@
-# React + TypeScript + Vite
+# Style Aid
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A wardrobe planner that builds outfits around real scenarios. Log the pieces you own, save looks for work, going out, weekends, date nights and travel, and keep a wishlist where every item is tied to the looks it would finish.
 
-Currently, two official plugins are available:
+## Run it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+| Script | What it does |
+|---|---|
+| `npm run dev` | Vite dev server with hot reload |
+| `npm run build` | Typecheck, then build to `dist/` |
+| `npm run preview` | Serve the built app |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc -b` |
+| `npm test` | Vitest unit tests (`src/**/*.test.ts`, `vite.plugins/**/*.test.ts`) |
+| `npm run test:e2e` | Playwright end-to-end tests in `e2e/`, desktop and phone. Starts Vite on port 5391 (`E2E_PORT` to change). Run `npx playwright install chromium` once first. |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## How it works
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **Data** lives only in the browser's `localStorage` under `style-aid-state-v2` (older `style-aid-state-v1` data is migrated on load). There is no backend and no account. Photos are stored inside that same entry as data URLs, so large photos fill the browser's storage quickly; the app shows a warning when a save fails.
+- **Scenarios** and their required categories are in `src/data/scenarios.ts`. A look's completeness is how many of its scenario's required slots it fills (`src/lib/looks.ts`).
+- **Insights** (gaps, wishlist usefulness, spend) are computed in `src/lib/insights.ts`.
+- **Product import**: "Import from link" on the Wishlist tab calls `GET /api/import-product?url=...`, a Vite middleware in `vite.plugins/productImport.ts` that reads the page's Open Graph tags. It only exists under `npm run dev` and `npm run preview`; a static deploy of `dist/` has no import endpoint. It only fetches public http(s) addresses.
+
+## Layout
+
+```
+src/
+  App.tsx              state, persistence and tab routing
+  components/          one view per tab plus the radar chart
+  lib/                 pure logic (looks, insights, storage, wishlist merge, colors, import client)
+  data/scenarios.ts    scenario presets
+vite.plugins/          product import middleware
+e2e/                   Playwright specs
+docs/                  audit and run notes
 ```
