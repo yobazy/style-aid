@@ -150,9 +150,8 @@ function WishlistEditForm({
           />
         </label>
         <label className="form-span">
-          Product link
+          Product URL
           <input
-            type="url"
             value={draft.productUrl}
             onChange={(event) => setDraft((current) => ({ ...current, productUrl: event.target.value }))}
           />
