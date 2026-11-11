@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { getColorSwatch, getSwatchTextColor } from '../lib/color'
 import { formatLookCount } from '../lib/insights'
+import { shrinkPhoto } from '../lib/photo'
 import type { DressCode, Look, Season, WardrobeItem } from '../types'
 import { categories, dressCodes, seasons } from '../types'
 
@@ -38,15 +39,6 @@ const emptyDraft: WardrobeDraft = {
   favorite: false,
   tags: '',
   image: undefined,
-}
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result))
-    reader.onerror = () => reject(new Error('Could not read image file'))
-    reader.readAsDataURL(file)
-  })
 }
 
 export function ClosetView({
@@ -119,7 +111,7 @@ export function ClosetView({
     }
 
     try {
-      const image = await readFileAsDataUrl(file)
+      const image = await shrinkPhoto(file)
       setDraft((current) => ({ ...current, image }))
     } catch {
       setDraft((current) => ({ ...current, image: undefined }))
