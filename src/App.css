@@ -46,8 +46,6 @@
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .hero h1,
@@ -164,8 +162,6 @@
   background: rgba(255, 255, 255, 0.02);
   border-color: var(--border);
   color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   font-size: 0.78rem;
 }
 
@@ -254,8 +250,6 @@
 .progress-ring-inner span {
   font-size: 0.72rem;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .form-grid {
@@ -556,8 +550,6 @@ textarea {
 .color-fallback-stage {
   color: rgba(10, 10, 10, 0.9);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .wishlist-import-placeholder {
@@ -607,8 +599,6 @@ textarea {
 .missing-piece-eyebrow {
   font-size: 0.72rem;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
 }
 
 .look-piece-pill {
@@ -701,8 +691,6 @@ textarea {
 .radar-label {
   fill: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 button:disabled {
@@ -729,8 +717,6 @@ button:disabled {
 .swatch-label {
   color: var(--muted);
   font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .item-card {
